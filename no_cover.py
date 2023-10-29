@@ -1,34 +1,30 @@
 import socket
 import pyaudio
 
-# Client configuration
-SERVER_IP = '192.168.29.157'  # Replace with the server's IP address
-SERVER_PORT = 12345
+# Constants
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
+LISTEN_IP = '0.0.0.0'
+LISTEN_PORT = 12345
 
 # Initialize PyAudio
 audio = pyaudio.PyAudio()
-input_stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
-output_stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, output=True, frames_per_buffer=CHUNK)
 
-# Create a socket client
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect((SERVER_IP, SERVER_PORT))
+# Create a socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind((LISTEN_IP, LISTEN_PORT))
 
-try:
-    while True:
-        data = client_socket.recv(CHUNK)
-        output_stream.write(data)
+# Create an audio stream
+stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
 
-        # Capture audio from the client and send it to the server
-        input_data = input_stream.read(CHUNK)
-        client_socket.send(input_data)
-except KeyboardInterrupt:
-    pass
+while True:
+    data, addr = sock.recvfrom(CHUNK)
+    stream.write(data)
 
 # Clean up
-client_socket.close()
+stream.stop_stream()
+stream.close()
 audio.terminate()
+sock.close()
