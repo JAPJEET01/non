@@ -11,7 +11,8 @@ RATE = 44100
 
 # Initialize PyAudio
 audio = pyaudio.PyAudio()
-stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+input_stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+output_stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, output=True, frames_per_buffer=CHUNK)
 
 # Create a socket server
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -22,9 +23,16 @@ print(f"Listening for incoming connections on {SERVER_IP}:{SERVER_PORT}")
 client_socket, client_address = server_socket.accept()
 print(f"Connected to {client_address}")
 
-while True:
-    data = stream.read(CHUNK)
-    client_socket.send(data)
+try:
+    while True:
+        data = client_socket.recv(CHUNK)
+        output_stream.write(data)
+
+        # Capture audio from the server and send it to the client
+        input_data = input_stream.read(CHUNK)
+        client_socket.send(input_data)
+except KeyboardInterrupt:
+    pass
 
 # Clean up
 server_socket.close()
